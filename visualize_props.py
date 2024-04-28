@@ -86,18 +86,20 @@ if __name__ == '__main__':
     obj1_idx = dataset.get_obj_idx(obj1_id)
     obj2_idx = dataset.get_obj_idx(obj2_id)
 
-    if obj1_id not in objs_in_scene:
+    all_objects = dataset._get_object_class_list()
+
+    if args.obj1 not in all_objects:
         print(f'No canonical view of {args.obj1} available in object database')
         exit(1)
-    if obj2_id not in objs_in_scene:
+    if args.obj2 not in all_objects:
         print(f'No canonical view of {args.obj2} available in object database')
         exit(1)
 
-    obj1_patch = dataset.objects_dict[obj1_id][0]
-    obj2_patch = dataset.objects_dict[obj2_id][0]
+    obj1_patch_viz = dataset.objects_dict[obj1_id][0]
+    obj2_patch_viz = dataset.objects_dict[obj2_id][0]
     
     patch_tensors = torch.stack(
-        [normalize_rgb(obj1_patch), normalize_rgb(obj2_patch)]
+        [obj_patches[obj1_idx], obj_patches[obj2_idx]]
     ).unsqueeze(0)
 
     objects = {
@@ -111,17 +113,18 @@ if __name__ == '__main__':
         print(f'{args.obj2} not in the scene. Prediction may be arbitrary.')
         print("Available objects:", list(objects.keys()))
 
-    _,ids,xyzs = dataset._get_data(args.scene_id)
-    relations_matrix_3d = dataset.get_spatial_relations(ids,xyzs)
-    # relations_matrix_3d = relations_matrix.view(4,10,9)
-    # print(relation)
-    # diagonal_mask = torch.ones(args.max_nobj, args.max_nobj, dtype=torch.bool) ^ torch.eye(
-    #     args.max_nobj, dtype=torch.bool)
-    gt = relations_matrix_3d[relation,obj1_idx,obj2_idx]
-    # full_relations = torch.ones(4,10,10)*-1
-    # full_relations[:, :relations_matrix_3d.shape[1], :relations_matrix_3d.shape[2]] = relations_matrix_3d
-    # print(full_relations.shape)
-    # gt = relations_matrix.reshape(len(relations)
+    relations_matrix_2d = relations_matrix.reshape(len(relations), -1)
+
+    # Create indices for the off-diagonal elements in the last two dimensions
+    diag_mask = torch.ones(10, 10).bool() ^ torch.eye(10).bool()
+    indices = diag_mask.nonzero(as_tuple=False)
+  
+    target = torch.tensor([obj1_idx, obj2_idx])
+
+    match = (indices == target).all(dim=1)
+ 
+    index = match.nonzero(as_tuple=True)[0]
+    gt = relations_matrix_2d[relation,index]
     if gt == -1:
         print(
             'Relation is ambiguous due to repeated objects. '
@@ -147,6 +150,7 @@ if __name__ == '__main__':
     with torch.no_grad():
         emb, attn = model(img_tensor, patch_tensors)
         logits = head(emb).cpu()
+
     pred = logits.reshape(len(relations), -1)[relation][0] > 0
     pred_text = 'Yes' if pred else 'No'
 
@@ -164,8 +168,8 @@ if __name__ == '__main__':
     a0.set_title('Input image', fontsize=18)
     a0.axis('off')
     obj_img = np.ones((224, 96, 3)).astype('uint8') * 255
-    obj_img[:96] = np.array(obj1_patch.resize((96, 96)))
-    obj_img[128:] = np.array(obj2_patch.resize((96, 96)))
+    obj_img[:96] = np.array(obj1_patch_viz.resize((96, 96)))
+    obj_img[128:] = np.array(obj2_patch_viz.resize((96, 96)))
     a1.imshow(obj_img)
     a1.set_title('Query Object', fontsize=18)
     a1.axis('off')

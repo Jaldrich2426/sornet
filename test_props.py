@@ -69,6 +69,8 @@ if __name__ == '__main__':
 
     correct = 0
     total = 0
+    correct_matrix = torch.zeros(1,360)
+    total_matrix = torch.zeros(1,360)
     for img, obj_patches, target, mask in tqdm(loader):
         img = img.cuda()
         obj_patches = obj_patches.cuda()
@@ -78,8 +80,29 @@ if __name__ == '__main__':
             pred = (logits > 0).int().cpu()
         target = target.int()
         mask = mask.bool()
+
         correct += (pred[mask] == target[mask]).sum().item()
+        correct_matrix[mask] += pred[mask] == target[mask]
+        total_matrix[mask] += 1
         total += mask.sum().item()
 
     print('Total', total)
     print('Accuracy', correct / total * 100)
+
+    accuracy_matrix = correct_matrix / total_matrix * 100
+
+    accuracy_matrix=accuracy_matrix.reshape(4,90)
+    diag_mask = torch.ones(10, 10).bool() ^ torch.eye(10).bool()
+    # print(diag_mask)
+    flat_mask= diag_mask.reshape(-1)
+    # print(flat_mask.shape)
+    full_accuracy_matrix = torch.ones(4,100)*-1
+    for i in range(4):
+        full_accuracy_matrix[i,flat_mask] = accuracy_matrix[i,:]
+    full_accuracy_matrix=full_accuracy_matrix.reshape(4,10,10)
+
+    # print('Accuracy Matrix',full_accuracy_matrix)
+    # average over first dim
+    print('Average Accuracy Matrix, row is obj1, col is obj2:')
+    print(torch.mean(full_accuracy_matrix,dim=0))
+
