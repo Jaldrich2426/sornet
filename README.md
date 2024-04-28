@@ -22,6 +22,7 @@ To visualize a model:
 ```
 python visualize_props.py 0 left potted_meat_can master_chef_can --checkpoint models/props.pth
 ```
+Note that since the PROPS Pose dataset automatically augments its images you may experince less percieved accuracy in some cases depending on the scene augmentation. 
 
 # SORNet: Spatial Object-Centric Representations for Sequential Manipulation
 ### [[paper]](https://arxiv.org/abs/2109.03891) [[website]](https://wentaoyuan.github.io/sornet) [[clevr data]](https://drive.google.com/drive/folders/1Shgm4IjBYyupu7376uzcs9X7rArm10ui) [[leonardo data]](https://drive.google.com/drive/folders/1YsYkvSTM8rqkyPAmEnbmwu6J6_R4qq2V) [[pretrained models]](https://drive.google.com/drive/folders/1kXPBnQI46VxQfAEqoaCeFLZfRn8HH3at)
