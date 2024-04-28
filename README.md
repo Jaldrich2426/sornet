@@ -1,3 +1,28 @@
+# PROPS SORNet Applications
+This fork applies example applications of SORNet to the PROPS dataset. For the dataset itself, see the code and download instructions [here](https://github.com/Jaldrich2426/PROPS-Relation-Dataset)
+
+Additionally, you can find our pretrained props models [here](https://drive.google.com/drive/folders/1NoNaCUQCFkynK-AstQHo3EojAA-pq-U9?usp=sharing), where we recoment you place the .pth files in the "models" folder, after following the original SORNet setup instructions.
+
+props.pth was trained at a full resolution of 640x480, while props_small was downsampled to 480x320.
+
+## Usage
+After following the original sornet setup instructions, the following provide examples of running the scripts for props, note that you may need to specify image size when switching between the two trained models
+
+To train a model:
+```
+python train_props.py --log log/props --img_w 640 --img_h 480
+```
+
+To test a model:
+```
+python test_props.py --checkpoint models/props.pth
+```
+
+To visualize a model:
+```
+python visualize_props.py 0 left potted_meat_can master_chef_can --checkpoint models/props.pth
+```
+
 # SORNet: Spatial Object-Centric Representations for Sequential Manipulation
 ### [[paper]](https://arxiv.org/abs/2109.03891) [[website]](https://wentaoyuan.github.io/sornet) [[clevr data]](https://drive.google.com/drive/folders/1Shgm4IjBYyupu7376uzcs9X7rArm10ui) [[leonardo data]](https://drive.google.com/drive/folders/1YsYkvSTM8rqkyPAmEnbmwu6J6_R4qq2V) [[pretrained models]](https://drive.google.com/drive/folders/1kXPBnQI46VxQfAEqoaCeFLZfRn8HH3at)
 ![teaser](figures/teaser.png)
