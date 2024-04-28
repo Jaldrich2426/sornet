@@ -37,8 +37,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # Data
     parser.add_argument('--max_nobj', type=int, default=10)
-    parser.add_argument('--img_h', type=int, default=320)
-    parser.add_argument('--img_w', type=int, default=480)
+    parser.add_argument('--img_h', type=int, default=480)
+    parser.add_argument('--img_w', type=int, default=640)
     # Model
     parser.add_argument('--patch_size', type=int, default=32)
     parser.add_argument('--width', type=int, default=768)
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_worker', type=int, default=1)
     args = parser.parse_args()
 
-    data = PROPSRelationDataset("val")
+    data = PROPSRelationDataset("val", "objects", args, rand_patch=False, resize=True)
     loader = DataLoader(data, args.batch_size, num_workers=args.n_worker)
 
     model = EmbeddingNet(

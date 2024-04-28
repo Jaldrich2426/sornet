@@ -33,6 +33,10 @@ from matplotlib import pyplot as plt
 from networks import EmbeddingNet, ReadoutNet
 from props_relation_dataset.PropsRelationDataset import PROPSRelationDataset
 
+from props_relation_dataset.datasets import PROPSPoseDataset
+import os
+from torchvision.transforms import ToPILImage
+
 relations = {'left': 0, 'right': 1, 'front': 2, 'behind': 3}
 relation_phrases = {
     'left': 'to the left of',
@@ -51,8 +55,9 @@ if __name__ == '__main__':
     parser.add_argument('obj2')
     parser.add_argument('--data_dir')
     parser.add_argument('--split')
-    parser.add_argument('--img_h', type=int, default=320)
-    parser.add_argument('--img_w', type=int, default=480)
+    parser.add_argument('--img_h', type=int, default=480)
+    parser.add_argument('--img_w', type=int, default=640)
+    parser.add_argument('--max_nobj', type=int, default=10)
     # Model
     parser.add_argument('--patch_size', type=int, default=32)
     parser.add_argument('--width', type=int, default=768)
@@ -69,40 +74,54 @@ if __name__ == '__main__':
         )
     relation = relations[args.relation]
 
-    dataset = PROPSRelationDataset("val") 
-    datapoint = dataset.dataset[args.scene_id]
+    dataset = PROPSRelationDataset("val", "objects", args, rand_patch=False, resize=True)
 
     image, obj_patches, relations_matrix, mask= dataset[args.scene_id]
-    if int(args.obj1) not in datapoint['objs_id']:
+
+    objs_in_scene = dataset.get_objs_in_image(args.scene_id)
+
+    obj1_id = dataset.get_obj_id(args.obj1)
+    obj2_id = dataset.get_obj_id(args.obj2)
+
+    obj1_idx = dataset.get_obj_idx(obj1_id)
+    obj2_idx = dataset.get_obj_idx(obj2_id)
+
+    if obj1_id not in objs_in_scene:
         print(f'No canonical view of {args.obj1} available in object database')
         exit(1)
-    if int(args.obj2) not in datapoint['objs_id']:
+    if obj2_id not in objs_in_scene:
         print(f'No canonical view of {args.obj2} available in object database')
         exit(1)
 
-    obj1_patch = dataset.objects_dict[args.obj1][0]
-    obj2_patch = dataset.objects_dict[args.obj2][0]
+    obj1_patch = dataset.objects_dict[obj1_id][0]
+    obj2_patch = dataset.objects_dict[obj2_id][0]
+    
     patch_tensors = torch.stack(
         [normalize_rgb(obj1_patch), normalize_rgb(obj2_patch)]
     ).unsqueeze(0)
 
     objects = {
-        obj: i for i, obj in enumerate(datapoint['objs_id'])
+        obj: i for i, obj in enumerate(objs_in_scene)
     }
-    if int(args.obj1) not in objects:
+    if obj1_id not in objects:
         print(f'{args.obj1} not in the scene. Prediction may be arbitrary.')
         print("Available objects:", list(objects.keys()))
-    else:
-        obj1 = objects[int(args.obj1)]
-    if int(args.obj2) not in objects:
+
+    if obj2_id not in objects:
         print(f'{args.obj2} not in the scene. Prediction may be arbitrary.')
         print("Available objects:", list(objects.keys()))
-    else:
-        obj2 = objects[int(args.obj2)]
 
-    relations_matrix_3d = dataset.get_spatial_relations(datapoint)
-    gt = relations_matrix_3d[relation,int(args.obj1)-1,int(args.obj2)-1]
-
+    _,ids,xyzs = dataset._get_data(args.scene_id)
+    relations_matrix_3d = dataset.get_spatial_relations(ids,xyzs)
+    # relations_matrix_3d = relations_matrix.view(4,10,9)
+    # print(relation)
+    # diagonal_mask = torch.ones(args.max_nobj, args.max_nobj, dtype=torch.bool) ^ torch.eye(
+    #     args.max_nobj, dtype=torch.bool)
+    gt = relations_matrix_3d[relation,obj1_idx,obj2_idx]
+    # full_relations = torch.ones(4,10,10)*-1
+    # full_relations[:, :relations_matrix_3d.shape[1], :relations_matrix_3d.shape[2]] = relations_matrix_3d
+    # print(full_relations.shape)
+    # gt = relations_matrix.reshape(len(relations)
     if gt == -1:
         print(
             'Relation is ambiguous due to repeated objects. '
@@ -157,5 +176,7 @@ if __name__ == '__main__':
     a2.text(0.5, 0.2, f'SORNet: {pred_text}', fontsize=16, ha='center', va='center')
     a2.text(0.5, 0.1, f'Ground truth: {gt_text}', fontsize=16, ha='center', va='center')
     a2.axis('off')
+
+
     plt.tight_layout()
     plt.show()

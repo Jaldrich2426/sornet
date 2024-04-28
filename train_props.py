@@ -83,9 +83,9 @@ def train(rank, args):
     dist.init_process_group('nccl', rank=rank, world_size=args.n_gpu)
     torch.cuda.set_device(rank)
 
-    train_data = PROPSRelationDataset("train")
+    train_data = PROPSRelationDataset("train","objects",args,rand_patch=True,resize=True)
 
-    valid_data = PROPSRelationDataset("val")
+    valid_data = PROPSRelationDataset("val", "objects",args, rand_patch=False,resize=True)
 
     model = EmbeddingNet(
         (args.img_w, args.img_h), args.patch_size, args.max_nobj,
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     parser.add_argument('--log_dir')
     parser.add_argument('--n_gpu', type=int, default=1)
     parser.add_argument('--port', default='12345')
-    parser.add_argument('--batch_size', type=int, default=100)
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--n_epoch', type=int, default=80)
     parser.add_argument('--print_freq', type=int, default=5)
